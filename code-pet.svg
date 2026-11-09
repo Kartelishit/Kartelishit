@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300" role="img" aria-label="Kartelishit's cute code pet">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1530"/>
+      <stop offset="1" stop-color="#2b1d46"/>
+    </linearGradient>
+    <radialGradient id="body" cx="35%" cy="28%" r="80%">
+      <stop offset="0" stop-color="#ffe3f4"/>
+      <stop offset="0.45" stop-color="#ff9fd0"/>
+      <stop offset="1" stop-color="#c94f9e"/>
+    </radialGradient>
+    <radialGradient id="belly" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#fff3fa"/>
+      <stop offset="1" stop-color="#ffc4e4"/>
+    </radialGradient>
+    <linearGradient id="platTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f7bff"/>
+      <stop offset="1" stop-color="#6a56d8"/>
+    </linearGradient>
+    <linearGradient id="platSide" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4b3aa8"/>
+      <stop offset="1" stop-color="#2e2270"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff9fd0"/>
+      <stop offset="1" stop-color="#ffd37a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff9fd0" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ff9fd0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <style>
+    text { font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", system-ui, sans-serif; }
+    .fb { transform-box: fill-box; }
+    .hop { animation: hop 2.2s cubic-bezier(.3,.0,.3,1) infinite; }
+    .squash { transform-origin: 50% 100%; animation: squash 2.2s ease-in-out infinite; }
+    .shadow { transform-origin: 50% 50%; animation: shadow 2.2s ease-in-out infinite; }
+    .blink { transform-origin: 50% 50%; animation: blink 4s infinite; }
+    .float { animation: float 5s ease-in infinite; opacity: 0; }
+    .f2 { animation-delay: 1.6s; } .f3 { animation-delay: 3.2s; }
+    .fill { transform-origin: 0 50%; animation: grow 1.4s ease-out both; }
+    .glow { animation: pulse 3s ease-in-out infinite; transform-origin: 50% 50%; }
+    @keyframes hop { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-34px); } 60% { transform: translateY(-34px); } 85% { transform: translateY(0); } }
+    @keyframes squash { 0%,100% { transform: scale(1.06,.94); } 20% { transform: scale(.96,1.05); } 45%,55% { transform: scale(.98,1.04); } 85% { transform: scale(1.08,.92); } }
+    @keyframes shadow { 0%,100% { transform: scale(1); opacity: .45; } 50% { transform: scale(.7); opacity: .22; } }
+    @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+    @keyframes float { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+    @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes pulse { 0%,100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.12); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .float { opacity: 1; } }
+  </style>
+
+  <rect width="800" height="300" rx="24" fill="url(#bg)"/>
+  <circle cx="190" cy="140" r="120" fill="url(#glow)" class="glow fb"/>
+
+  <g fill="#fff" opacity=".6">
+    <circle cx="40" cy="40" r="1.6"/><circle cx="330" cy="30" r="1.4"/><circle cx="90" cy="250" r="1.4"/>
+    <circle cx="350" cy="230" r="1.6"/><circle cx="760" cy="40" r="1.4"/><circle cx="730" cy="262" r="1.6"/>
+  </g>
+
+  <g>
+    <ellipse cx="190" cy="252" rx="112" ry="26" fill="url(#platSide)"/>
+    <rect x="78" y="236" width="224" height="16" fill="url(#platSide)"/>
+    <ellipse cx="190" cy="236" rx="112" ry="26" fill="url(#platTop)"/>
+    <ellipse cx="190" cy="232" rx="96" ry="19" fill="#a898ff" opacity=".35"/>
+  </g>
+  <ellipse cx="190" cy="236" rx="54" ry="10" fill="#1a1040" class="shadow fb"/>
+
+  <g class="hop">
+    <g class="squash fb">
+      <ellipse cx="160" cy="228" rx="19" ry="10" fill="#c94f9e"/>
+      <ellipse cx="220" cy="228" rx="19" ry="10" fill="#c94f9e"/>
+      <path d="M142 112 Q128 74 160 88 Q166 102 160 114 Z" fill="url(#body)"/>
+      <path d="M238 112 Q252 74 220 88 Q214 102 220 114 Z" fill="url(#body)"/>
+      <path d="M146 106 Q140 88 156 94 Q158 102 156 108 Z" fill="#ffc4e4"/>
+      <path d="M234 106 Q240 88 224 94 Q222 102 224 108 Z" fill="#ffc4e4"/>
+      <path d="M190 96 C246 96 262 150 256 188 C250 222 224 232 190 232 C156 232 130 222 124 188 C118 150 134 96 190 96 Z" fill="url(#body)"/>
+      <ellipse cx="190" cy="196" rx="34" ry="26" fill="url(#belly)" opacity=".9"/>
+      <ellipse cx="156" cy="130" rx="15" ry="9" fill="#fff" opacity=".75" transform="rotate(-30 156 130)"/>
+      <circle cx="140" cy="148" r="3.5" fill="#fff" opacity=".7"/>
+      <g class="blink fb">
+        <ellipse cx="164" cy="160" rx="8" ry="10" fill="#2a1233"/>
+        <ellipse cx="216" cy="160" rx="8" ry="10" fill="#2a1233"/>
+        <circle cx="167" cy="156" r="3" fill="#fff"/>
+        <circle cx="219" cy="156" r="3" fill="#fff"/>
+      </g>
+      <ellipse cx="146" cy="176" rx="10" ry="6" fill="#ff6fa8" opacity=".55"/>
+      <ellipse cx="234" cy="176" rx="10" ry="6" fill="#ff6fa8" opacity=".55"/>
+      <path d="M182 176 Q190 186 198 176" fill="none" stroke="#2a1233" stroke-width="3" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <path class="float fb" d="M268 120 c-4-7-14-3-10 4 l10 9 l10-9 c4-7-6-11-10-4z" fill="#ff7eb6"/>
+  <path class="float f2 fb" d="M110 130 c-3-5-10-2-7 3 l7 6 l7-6 c3-5-4-8-7-3z" fill="#ffd37a"/>
+  <path class="float f3 fb" d="M250 90 c-3-5-10-2-7 3 l7 6 l7-6 c3-5-4-8-7-3z" fill="#a898ff"/>
+
+  <text x="420" y="82" font-size="14" fill="#a898ff" letter-spacing="1">code pet</text>
+  <text x="420" y="122" font-size="38" font-weight="800" fill="#fff">kartelishit</text>
+  <text x="420" y="150" font-size="15" fill="#c9bfe8">Frontend / full-stack engineer. My pet eats commits.</text>
+
+  <g font-size="14" fill="#fff" font-weight="700">
+    <text x="420" y="196">Mood</text>
+    <text x="420" y="224">Food</text>
+    <text x="420" y="252">Growth</text>
+  </g>
+  <g>
+    <rect x="500" y="184" width="240" height="12" rx="6" fill="#ffffff" fill-opacity=".1"/>
+    <rect x="500" y="184" width="168" height="12" rx="6" fill="url(#bar)" class="fill fb"/>
+    <rect x="500" y="212" width="240" height="12" rx="6" fill="#ffffff" fill-opacity=".1"/>
+    <rect x="500" y="212" width="120" height="12" rx="6" fill="url(#bar)" class="fill fb" style="animation-delay:.2s"/>
+    <rect x="500" y="240" width="240" height="12" rx="6" fill="#ffffff" fill-opacity=".1"/>
+    <rect x="500" y="240" width="72" height="12" rx="6" fill="url(#bar)" class="fill fb" style="animation-delay:.4s"/>
+  </g>
+  <text x="740" y="278" font-size="11" fill="#8b80b0" text-anchor="end">fed by my commits</text>
+</svg>
