@@ -3,8 +3,13 @@ name: Update code pet
 
 'on':
   workflow_dispatch:
+
   schedule:
     - cron: '0 */6 * * *'
+
+  push:
+    paths:
+      - '.github/scripts/generate-pet.mjs'
 
 permissions:
   contents: write
@@ -22,7 +27,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Generate coding pet
+      - name: Generate Byte
         run: node .github/scripts/generate-pet.mjs
         env:
           GH_USER: ${{ github.repository_owner }}
@@ -32,8 +37,13 @@ jobs:
         run: |
           git config user.name "code-pet[bot]"
           git config user.email "actions@users.noreply.github.com"
-          git add code-pet.svg
-          git diff --cached --quiet || git commit -m "Update coding pet"
-          git push
 
+          git add code-pet.svg
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update coding pet"
+            git push
+          else
+            echo "No changes to commit."
+          fi
 
