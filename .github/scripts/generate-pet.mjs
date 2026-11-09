@@ -1,6 +1,8 @@
 
-// Byte 2.0 — polished GitHub coding-pet dashboard.
-// Node.js 20+, no dependencies. Generates code-pet.svg from live GitHub GraphQL data.
+// BYTE 2.1 — GitHub Coding Pet
+// Node.js 20+, no external dependencies.
+// Generates code-pet.svg using live GitHub GraphQL data.
+
 import fs from 'node:fs';
 
 const login = process.env.GH_USER || 'Kartelishit';
@@ -16,7 +18,7 @@ const QUERY = `query($login:String!){
         weeks{ contributionDays{ date weekday contributionCount } }
       }
     }
-    openPRs: pullRequests(states:OPEN){ totalCount }
+    openPRs: pullRequests(first:1, states:OPEN){ totalCount }
     repositories(first:100, ownerAffiliations:OWNER, isFork:false, privacy:PUBLIC){
       totalCount
       nodes{
@@ -155,6 +157,7 @@ const shortDate = (date) =>
   });
 
 const user = await loadGitHubData();
+
 const contributions = user.contributionsCollection;
 const calendar = contributions.contributionCalendar;
 const today = new Date().toISOString().slice(0, 10);
@@ -168,10 +171,13 @@ if (!days.length) {
   throw new Error('GitHub returned an empty contribution calendar.');
 }
 
-// Current streak: today if active, otherwise continue from yesterday.
+// Current streak.
 let cursor = days.length - 1;
 
-if (days[cursor].contributionCount === 0 && days[cursor].date === today) {
+if (
+  days[cursor].contributionCount === 0 &&
+  days[cursor].date === today
+) {
   cursor--;
 }
 
@@ -182,6 +188,7 @@ while (cursor >= 0 && days[cursor].contributionCount > 0) {
   cursor--;
 }
 
+// Best streak.
 let bestStreak = 0;
 let runningStreak = 0;
 
@@ -206,6 +213,7 @@ const activeDays = last7.filter(
 
 const latestDay = days.at(-1);
 const xp = calendar.totalContributions;
+
 const level = Math.floor(xp / 400) + 1;
 const xpIntoLevel = xp % 400;
 const levelProgress = Math.round((xpIntoLevel / 400) * 100);
@@ -219,6 +227,7 @@ const bestDay = days.reduce(
 const dailyAverage = (xp / days.length).toFixed(1);
 const sleepy = streak === 0;
 
+// Repository statistics.
 const repoNodes = user.repositories.nodes || [];
 const repoCount = user.repositories.totalCount || 0;
 
@@ -227,7 +236,7 @@ const stars = repoNodes.reduce(
   0
 );
 
-// Calculate language distribution.
+// Programming languages.
 const languageBytes = {};
 
 for (const repo of repoNodes) {
@@ -285,17 +294,13 @@ if (!languages.length) {
   }];
 }
 
-// Pet vitals are derived from actual GitHub activity.
+// Pet vitals.
 const stats = [
   {
     label: 'Mood',
     value: sleepy ? 24 : clamp(45 + streak * 5),
     color: '#41D9CF',
-    note: sleepy
-      ? 'waiting for a commit'
-      : streak >= 7
-        ? 'on a lovely streak'
-        : 'feeling good',
+    note: sleepy ? 'waiting for a commit' : streak >= 7 ? 'on a lovely streak' : 'feeling good',
   },
   {
     label: 'Snack meter',
@@ -330,7 +335,7 @@ const moodLine = sleepy
   ? 'Byte is in sleep mode'
   : 'Byte is awake and growing';
 
-// Draw the latest 40 contribution weeks.
+// Contribution heatmap.
 const weeks = calendar.weeks.slice(-40);
 
 const heatColors = [
@@ -348,30 +353,28 @@ const maxContribution = Math.max(
   )
 );
 
-const heatCells = weeks
-  .map((week, weekIndex) =>
-    week.contributionDays.map((day) => {
-      const ratio = day.contributionCount / maxContribution;
+const heatCells = weeks.map((week, weekIndex) =>
+  week.contributionDays.map((day) => {
+    const ratio = day.contributionCount / maxContribution;
 
-      const levelIndex = day.contributionCount === 0
-        ? 0
-        : ratio < 0.25
-          ? 1
-          : ratio < 0.5
-            ? 2
-            : ratio < 0.75
-              ? 3
-              : 4;
+    const levelIndex = day.contributionCount === 0
+      ? 0
+      : ratio < 0.25
+        ? 1
+        : ratio < 0.5
+          ? 2
+          : ratio < 0.75
+            ? 3
+            : 4;
 
-      const x = 52 + weekIndex * 12.1;
-      const y = 548 + day.weekday * 13.2;
+    const x = 52 + weekIndex * 12.1;
+    const y = 548 + day.weekday * 13.2;
 
-      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="8.8" height="9.4" rx="2.8" fill="${heatColors[levelIndex]}" class="heat-cell" style="animation-delay:${(weekIndex * 0.012 + day.weekday * 0.018).toFixed(3)}s"><title>${esc(day.date)}: ${day.contributionCount} contributions</title></rect>`;
-    }).join('')
-  )
-  .join('\n');
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="8.8" height="9.4" rx="2.8" fill="${heatColors[levelIndex]}" class="heat-cell" style="animation-delay:${(weekIndex * 0.012 + day.weekday * 0.018).toFixed(3)}s"><title>${esc(day.date)}: ${day.contributionCount} contributions</title></rect>`;
+  }).join('')
+).join('\n');
 
-// Pet vitals bars.
+// Pet status bars.
 const statBars = stats.map((stat, index) => {
   const y = 165 + index * 39;
 
@@ -383,7 +386,7 @@ const statBars = stats.map((stat, index) => {
     <text x="705" y="${y + 29}" class="tiny-muted">${esc(stat.note)}</text>`;
 }).join('');
 
-// Main statistic tiles.
+// Main statistic cards.
 const metricCards = [
   {
     x: 24,
@@ -429,6 +432,7 @@ const metricSvg = metricCards.map((card) => `
     <text x="${card.x + 206}" y="443" text-anchor="end" class="metric-foot">${esc(card.foot)}</text>
   </g>`).join('');
 
+// Language labels.
 let languageBars = '';
 
 languages.forEach((language, index) => {
@@ -445,6 +449,7 @@ languages.forEach((language, index) => {
 
 const contributionLabel = `${fmt(xp)} contributions · last 12 months`;
 
+// SVG document.
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="690" viewBox="0 0 1000 690" role="img" aria-labelledby="title desc">
   <title id="title">Byte — ${esc(login)}'s GitHub coding companion</title>
@@ -460,8 +465,17 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     <pattern id="microGrid" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" fill="none" stroke="#A9B8E8" stroke-opacity=".055" stroke-width="1"/></pattern>
     <clipPath id="heroClip"><rect x="24" y="84" width="952" height="270" rx="23"/></clipPath>
     <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="11"/></filter>
-    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></filter>
+
+    <!-- Corrected SVG glow filter: every tag is properly closed. -->
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
+
   <style>
     text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -495,7 +509,6 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     @media(prefers-reduced-motion:reduce){*{animation:none!important}.heat-cell{opacity:1}}
   </style>
 
-  <!-- Canvas -->
   <rect width="1000" height="690" rx="27" fill="url(#bg)"/>
   <rect x="1" y="1" width="998" height="688" rx="26" fill="none" stroke="#2A3552" stroke-opacity=".8"/>
   <circle cx="940" cy="70" r="180" fill="#594DAB" opacity=".08"/>
@@ -506,7 +519,7 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     <rect x="25" y="22" width="31" height="31" rx="10" fill="url(#accent)"/>
     <path d="M34 32L47 37.5L34 43V32Z" fill="#08162B"/>
     <text x="68" y="36" font-size="13" font-weight="800" fill="#F3F6FF">BYTE</text>
-    <text x="68" y="49" class="mono" font-size="8" fill="#7485A8" letter-spacing="1">CODE COMPANION / 2.0</text>
+    <text x="68" y="49" class="mono" font-size="8" fill="#7485A8" letter-spacing="1">CODE COMPANION / 2.1</text>
     <text x="976" y="39" text-anchor="end" font-size="10" font-weight="700" fill="#8392B1">${esc(login)}</text>
     <rect x="838" y="48" width="138" height="21" rx="10.5" fill="#14263A" stroke="#275267"/>
     <circle cx="851" cy="58.5" r="3" fill="${statusColor}"/>
@@ -521,7 +534,7 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     <circle cx="171" cy="220" r="105" fill="none" stroke="#6C8BB9" stroke-opacity=".17" stroke-dasharray="2 8"/>
     <ellipse cx="171" cy="303" rx="76" ry="12" fill="#030713" opacity=".75" filter="url(#softShadow)" class="bot-shadow"/>
 
-    <!-- orbiting satellites -->
+    <!-- Orbiting satellites -->
     <g class="orb">
       <circle cx="171" cy="119" r="5" fill="#FFB86B" filter="url(#glow)"/>
       <circle cx="171" cy="119" r="10" fill="none" stroke="#FFB86B" stroke-opacity=".3"/>
@@ -532,29 +545,24 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
 
     <!-- Byte mascot -->
     <g class="bot-float">
-      <!-- antenna -->
       <path d="M171 151V134" stroke="#72D8E3" stroke-width="5" stroke-linecap="round"/>
       <circle cx="171" cy="129" r="9" fill="#FFBE78" stroke="#FFE0B4" stroke-width="2"/>
       <circle cx="168" cy="126" r="2.5" fill="#FFF7E8"/>
 
-      <!-- side fins -->
       <path d="M105 204Q81 195 81 218Q83 239 106 232" fill="url(#botSide)" stroke="#9CEBF0" stroke-opacity=".5" stroke-width="2"/>
       <path d="M237 204Q261 195 261 218Q259 239 236 232" fill="url(#botSide)" stroke="#9CEBF0" stroke-opacity=".5" stroke-width="2"/>
       <circle cx="92" cy="216" r="4" fill="#FFCB8C"/>
       <circle cx="250" cy="216" r="4" fill="#FFCB8C"/>
 
-      <!-- feet -->
       <path d="M133 276Q130 295 145 297H160Q168 296 165 283Z" fill="#4666A5" stroke="#8BDCE6" stroke-width="2"/>
       <path d="M179 283Q176 296 186 297H202Q217 295 209 276Z" fill="#4666A5" stroke="#8BDCE6" stroke-width="2"/>
       <path d="M143 291h13M188 291h13" stroke="#B2F6F2" stroke-width="2" stroke-linecap="round" opacity=".8"/>
 
-      <!-- body shell -->
       <rect x="105" y="151" width="132" height="137" rx="39" fill="#263A68" opacity=".8" transform="translate(0 5)"/>
       <rect x="101" y="146" width="140" height="137" rx="39" fill="url(#botBody)" stroke="#C6FBFF" stroke-width="2"/>
       <path d="M119 163Q130 151 146 156" fill="none" stroke="#FFFFFF" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>
       <path d="M222 169Q237 194 232 221" fill="none" stroke="#386E9D" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
 
-      <!-- face glass -->
       <rect x="117" y="181" width="108" height="69" rx="23" fill="url(#visor)" stroke="#27466D" stroke-width="2"/>
       <path d="M132 190Q171 177 207 190" fill="none" stroke="#8CC9E8" stroke-opacity=".28" stroke-width="2"/>
 
@@ -563,12 +571,8 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
         : '<g class="bot-blink"><ellipse cx="150" cy="211" rx="7" ry="10" fill="#5DEBDD" filter="url(#glow)"/><ellipse cx="192" cy="211" rx="7" ry="10" fill="#5DEBDD" filter="url(#glow)"/><circle cx="152" cy="207" r="2.3" fill="#FFFFFF"/><circle cx="194" cy="207" r="2.3" fill="#FFFFFF"/></g>'}
 
       <path d="M162 230Q171 237 180 230" fill="none" stroke="#8DEFE2" stroke-width="3" stroke-linecap="round"/>
-
-      <!-- cheek lights -->
       <circle cx="132" cy="231" r="4" fill="#F28FAE" opacity=".7"/>
       <circle cx="210" cy="231" r="4" fill="#F28FAE" opacity=".7"/>
-
-      <!-- chest badge -->
       <rect x="153" y="260" width="34" height="13" rx="6.5" fill="#294B78" opacity=".72"/>
       <circle cx="163" cy="266.5" r="2" fill="#41D9CF"/>
       <circle cx="171" cy="266.5" r="2" fill="#8B7CFF"/>
@@ -577,14 +581,12 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
 
     <!-- Hero copy -->
     <text x="320" y="128" class="eyebrow">YOUR LITTLE COMMIT COMPANION</text>
-    <text x="318" y="181" font-size="47" font-weight="850" letter-spacing="-2" fill="#F4F6FF">Hey, I'm Byte<span fill="#41D9CF">.</span></text>
+    <text x="318" y="181" font-size="47" font-weight="850" letter-spacing="-2" fill="#F4F6FF">Hey, I'm Byte<tspan fill="#41D9CF">.</tspan></text>
     <text x="322" y="208" font-size="13" fill="#A6B4D1">I grow with every line of code you ship.</text>
-
     <rect x="320" y="229" width="305" height="35" rx="12" fill="#111D31" stroke="#2B405D"/>
     <circle cx="337" cy="246.5" r="4" fill="${statusColor}"/>
     <text x="350" y="250" font-size="10.5" font-weight="650" fill="#D4E0F7">${esc(activityStatus)}</text>
-
-    <text x="322" y="294" class="eyebrow">LEVEL ${level}  /  ${fmt(xp)} TOTAL XP</text>
+    <text x="322" y="294" class="eyebrow">LEVEL ${level} / ${fmt(xp)} TOTAL XP</text>
     <rect x="322" y="305" width="302" height="7" rx="3.5" fill="#1D2A43"/>
     <rect x="322" y="305" width="${(302 * xpIntoLevel / 400).toFixed(1)}" height="7" rx="3.5" fill="url(#accent)"/>
     <text x="624" y="329" text-anchor="end" font-size="9" fill="#8192B4">${levelProgress}% to level ${level + 1}</text>
@@ -596,7 +598,7 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     ${statBars}
   </g>
 
-  <!-- Metric tiles -->
+  <!-- Metrics -->
   ${metricSvg}
 
   <!-- Contribution heatmap -->
@@ -623,7 +625,6 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     <text x="714" y="518" class="eyebrow">YOUR TOOLKIT</text>
     <text x="714" y="539" class="heading">Top languages</text>
     <rect x="710" y="554" width="234" height="7" rx="3.5" fill="#202B43"/>
-
     ${(() => {
       let x = 710;
 
@@ -636,17 +637,16 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
         return part;
       }).join('');
     })()}
-
     ${languageBars}
   </g>
 
-  <text x="26" y="681" font-size="8" fill="#667594" letter-spacing=".5">BYTE 2.0  ·  AUTO-UPDATED FROM GITHUB  ·  KEEP BUILDING</text>
+  <text x="26" y="681" font-size="8" fill="#667594" letter-spacing=".5">BYTE 2.1 · AUTO-UPDATED FROM GITHUB · KEEP BUILDING</text>
   <text x="974" y="681" text-anchor="end" font-size="8" fill="#667594">${esc(today)} UTC</text>
 </svg>`;
 
 fs.writeFileSync('code-pet.svg', svg, 'utf8');
 
 console.log(
-  `Generated Byte 2.0 for ${login}: ${fmt(xp)} contributions, ${streak}-day streak, ${repoCount} repositories.`
+  `Generated Byte 2.1 for ${login}: ${fmt(xp)} contributions, ${streak}-day streak, ${repoCount} repositories.`
 );
 
