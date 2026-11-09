@@ -1,1 +1,1 @@
-<img src="https://raw.githubusercontent.com/Kartelishit/Kartelishit/main/code-pet.svg" alt="code pet" width="900" />
+<img src="https://raw.githubusercontent.com/Kartelishit/Kartelishit/main/code-pet.svg" alt="Byte - My Coding Pet" width="900" />
