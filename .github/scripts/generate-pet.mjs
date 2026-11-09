@@ -1,215 +1,652 @@
 
-// Builds code-pet.svg from your REAL GitHub data. Run by the workflow, no deps (Node 20+).
-import fs from "node:fs";
+// Byte 2.0 — polished GitHub coding-pet dashboard.
+// Node.js 20+, no dependencies. Generates code-pet.svg from live GitHub GraphQL data.
+import fs from 'node:fs';
 
-const login = process.env.GH_USER || "Kartelishit";
+const login = process.env.GH_USER || 'Kartelishit';
 const token = process.env.GH_PAT || process.env.GITHUB_TOKEN;
 
-const Q = `query($login:String!){ user(login:$login){
-  contributionsCollection{ totalCommitContributions totalPullRequestContributions
-    contributionCalendar{ totalContributions weeks{ contributionDays{ date weekday contributionCount } } } }
-  openPRs: pullRequests(states:OPEN){ totalCount }
-  repositories(first:100, ownerAffiliations:OWNER, isFork:false, privacy:PUBLIC){ totalCount
-    nodes{ stargazerCount languages(first:5, orderBy:{field:SIZE,direction:DESC}){ edges{ size node{ name } } } } } } }`;
+const QUERY = `query($login:String!){
+  user(login:$login){
+    contributionsCollection{
+      totalCommitContributions
+      totalPullRequestContributions
+      contributionCalendar{
+        totalContributions
+        weeks{ contributionDays{ date weekday contributionCount } }
+      }
+    }
+    openPRs: pullRequests(states:OPEN){ totalCount }
+    repositories(first:100, ownerAffiliations:OWNER, isFork:false, privacy:PUBLIC){
+      totalCount
+      nodes{
+        stargazerCount
+        languages(first:5, orderBy:{field:SIZE,direction:DESC}){
+          edges{ size node{ name } }
+        }
+      }
+    }
+  }
+}`;
 
-function mock() { // only for local testing: MOCK=1
+function mockData() {
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const start = new Date(end.getTime() - 370 * 864e5);
+  const startDay = new Date(start);
+  startDay.setUTCDate(startDay.getUTCDate() - startDay.getUTCDay());
   const weeks = [];
-  for (let w = 0; w < 53; w++) weeks.push({ contributionDays: Array.from({ length: 7 }, (_, d) => ({
-    date: new Date(Date.UTC(2026, 0, 1) + (w * 7 + d) * 864e5).toISOString().slice(0, 10), weekday: d,
-    contributionCount: (w * 7 + d) % 9 < 3 ? 0 : ((w * 31 + d * 17) % 12) })) });
-  return { contributionsCollection: { totalCommitContributions: 640, totalPullRequestContributions: 41,
-    contributionCalendar: { totalContributions: 900, weeks } }, openPRs: { totalCount: 3 },
-    repositories: { totalCount: 18, nodes: [{ stargazerCount: 12, languages: { edges: [
-      { size: 500, node: { name: "TypeScript" } }, { size: 300, node: { name: "CSS" } }, { size: 200, node: { name: "Python" } }] } }] } };
+
+  for (let w = 0; w < 53; w++) {
+    const contributionDays = [];
+
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startDay.getTime() + (w * 7 + d) * 864e5);
+      const day = Math.floor(date.getTime() / 864e5);
+      const count = date > end ? 0 : (day % 11 < 3 ? 0 : ((day * 7 + d * 13) % 15));
+
+      contributionDays.push({
+        date: date.toISOString().slice(0, 10),
+        weekday: d,
+        contributionCount: count,
+      });
+    }
+
+    weeks.push({ contributionDays });
+  }
+
+  return {
+    contributionsCollection: {
+      totalCommitContributions: 684,
+      totalPullRequestContributions: 47,
+      contributionCalendar: {
+        totalContributions: 1038,
+        weeks,
+      },
+    },
+    openPRs: { totalCount: 3 },
+    repositories: {
+      totalCount: 18,
+      nodes: [
+        {
+          stargazerCount: 13,
+          languages: {
+            edges: [
+              { size: 8800, node: { name: 'TypeScript' } },
+              { size: 5200, node: { name: 'JavaScript' } },
+              { size: 3100, node: { name: 'Python' } },
+              { size: 1900, node: { name: 'CSS' } },
+            ],
+          },
+        },
+        {
+          stargazerCount: 7,
+          languages: {
+            edges: [
+              { size: 2600, node: { name: 'TypeScript' } },
+              { size: 1700, node: { name: 'HTML' } },
+              { size: 900, node: { name: 'CSS' } },
+            ],
+          },
+        },
+      ],
+    },
+  };
 }
 
-async function load() {
-  if (process.env.MOCK) return mock();
-  const r = await fetch("https://api.github.com/graphql", { method: "POST",
-    headers: { Authorization: `bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ query: Q, variables: { login } }) });
-  const j = await r.json();
-  if (!j.data?.user) throw new Error(JSON.stringify(j.errors || j));
-  return j.data.user;
+async function loadGitHubData() {
+  if (process.env.MOCK === '1') return mockData();
+
+  if (!token) {
+    throw new Error('Missing GitHub token. Set GITHUB_TOKEN or GH_PAT.');
+  }
+
+  const response = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      Authorization: `bearer ${token}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'Byte-Code-Pet',
+    },
+    body: JSON.stringify({
+      query: QUERY,
+      variables: { login },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `GitHub API returned ${response.status}: ${body.slice(0, 500)}`
+    );
+  }
+
+  const result = await response.json();
+
+  if (result.errors?.length || !result.data?.user) {
+    throw new Error(
+      `GitHub GraphQL error: ${JSON.stringify(result.errors || result)}`
+    );
+  }
+
+  return result.data.user;
 }
 
-const u = await load();
-const cc = u.contributionsCollection, cal = cc.contributionCalendar;
-const days = cal.weeks.flatMap(w => w.contributionDays).sort((a, b) => a.date.localeCompare(b.date));
-const n = x => x.toLocaleString("en-US");
+const esc = (value) =>
+  String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&apos;',
+  }[ch]));
 
-// streaks
-let streak = 0, i = days.length - 1;
-if (days[i].contributionCount === 0) i--;
-while (i >= 0 && days[i].contributionCount > 0) { streak++; i--; }
-let best = 0, run = 0;
-for (const d of days) { run = d.contributionCount > 0 ? run + 1 : 0; best = Math.max(best, run); }
+const fmt = (value) =>
+  Number(value || 0).toLocaleString('en-US');
+
+const clamp = (value, min = 0, max = 100) =>
+  Math.max(min, Math.min(max, value));
+
+const shortDate = (date) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+
+const user = await loadGitHubData();
+const contributions = user.contributionsCollection;
+const calendar = contributions.contributionCalendar;
+const today = new Date().toISOString().slice(0, 10);
+
+const days = calendar.weeks
+  .flatMap((week) => week.contributionDays)
+  .filter((day) => day.date <= today)
+  .sort((a, b) => a.date.localeCompare(b.date));
+
+if (!days.length) {
+  throw new Error('GitHub returned an empty contribution calendar.');
+}
+
+// Current streak: today if active, otherwise continue from yesterday.
+let cursor = days.length - 1;
+
+if (days[cursor].contributionCount === 0 && days[cursor].date === today) {
+  cursor--;
+}
+
+let streak = 0;
+
+while (cursor >= 0 && days[cursor].contributionCount > 0) {
+  streak++;
+  cursor--;
+}
+
+let bestStreak = 0;
+let runningStreak = 0;
+
+for (const day of days) {
+  runningStreak = day.contributionCount > 0
+    ? runningStreak + 1
+    : 0;
+
+  bestStreak = Math.max(bestStreak, runningStreak);
+}
 
 const last7 = days.slice(-7);
-const week7 = last7.reduce((a, d) => a + d.contributionCount, 0);
-const active7 = last7.filter(d => d.contributionCount > 0).length;
-const fedToday = days.at(-1).contributionCount > 0;
-const xp = cal.totalContributions, level = Math.floor(xp / 400) + 1, into = xp % 400;
-const top = days.reduce((a, d) => (d.contributionCount > a.contributionCount ? d : a), days[0]);
-const topLabel = new Date(top.date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-const avg = (xp / days.length).toFixed(1);
+
+const weekTotal = last7.reduce(
+  (sum, day) => sum + day.contributionCount,
+  0
+);
+
+const activeDays = last7.filter(
+  (day) => day.contributionCount > 0
+).length;
+
+const latestDay = days.at(-1);
+const xp = calendar.totalContributions;
+const level = Math.floor(xp / 400) + 1;
+const xpIntoLevel = xp % 400;
+const levelProgress = Math.round((xpIntoLevel / 400) * 100);
+
+const bestDay = days.reduce(
+  (best, day) =>
+    day.contributionCount > best.contributionCount ? day : best,
+  days[0]
+);
+
+const dailyAverage = (xp / days.length).toFixed(1);
 const sleepy = streak === 0;
 
-// pet stats from real activity
-const stats = [
-  ["Mood", sleepy ? 20 : Math.min(100, 35 + streak * 6), "#3ddc97"],
-  ["Food", Math.min(100, Math.round(week7 / 15 * 100)), "#ffb454"],
-  ["Energy", Math.round(active7 / 7 * 100), "#58a6ff"],
-  ["Growth", Math.min(100, Math.round(xp / 2000 * 100)), "#ff7b72"],
+const repoNodes = user.repositories.nodes || [];
+const repoCount = user.repositories.totalCount || 0;
+
+const stars = repoNodes.reduce(
+  (sum, repo) => sum + (repo.stargazerCount || 0),
+  0
+);
+
+// Calculate language distribution.
+const languageBytes = {};
+
+for (const repo of repoNodes) {
+  for (const edge of repo.languages.edges || []) {
+    const name = edge.node?.name;
+
+    if (name) {
+      languageBytes[name] = (languageBytes[name] || 0) + edge.size;
+    }
+  }
+}
+
+const languageTotal = Object.values(languageBytes).reduce(
+  (sum, value) => sum + value,
+  0
+);
+
+const languagePalette = [
+  '#8B7CFF',
+  '#41D9CF',
+  '#FFB86B',
+  '#FF78A8',
+  '#74A7FF',
 ];
 
-// languages + stars
-const repos = u.repositories.nodes;
-const stars = repos.reduce((a, r) => a + r.stargazerCount, 0);
-const L = {};
-for (const r of repos) for (const e of r.languages.edges) L[e.node.name] = (L[e.node.name] || 0) + e.size;
-const tot = Object.values(L).reduce((a, b) => a + b, 0) || 1;
-const sorted = Object.entries(L).sort((a, b) => b[1] - a[1]);
-const pal = ["#58a6ff", "#ffb454", "#ff7b72", "#3ddc97"];
-let langs = sorted.slice(0, 4).map(([name, v], k) => [name, Math.round(v / tot * 100), pal[k]]);
-const rest = 100 - langs.reduce((a, l) => a + l[1], 0);
-if (rest > 0) langs.push(["Other", rest, "#8b949e"]);
-if (!langs.length) langs = [["No code yet", 100, "#8b949e"]];
+let languages = Object.entries(languageBytes)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 4)
+  .map(([name, bytes], index) => ({
+    name,
+    percent: languageTotal
+      ? Math.round((bytes / languageTotal) * 100)
+      : 0,
+    color: languagePalette[index],
+  }));
 
-// ---- svg parts ----
-const cols = ["#1b252c", "#14533f", "#1f8a62", "#3ddc97", "#a6f7d4"];
-const grid = cal.weeks.slice(-40);
-const max = Math.max(1, ...grid.flatMap(w => w.contributionDays.map(d => d.contributionCount)));
-const heat = grid.map((w, x) => w.contributionDays.map(d => {
-  const r = d.contributionCount / max, l = d.contributionCount === 0 ? 0 : r < .25 ? 1 : r < .5 ? 2 : r < .75 ? 3 : 4;
-  return `<rect x="${40 + x * 12}" y="${370 + d.weekday * 12}" width="9" height="9" rx="2.5" fill="${cols[l]}" class="cell" style="animation-delay:${(x * .04).toFixed(2)}s"/>`;
-}).join("")).join("\n");
+const shownPercent = languages.reduce(
+  (sum, language) => sum + language.percent,
+  0
+);
 
-const bars = stats.map(([name, p, c], k) => { const y = 122 + k * 32; return `
-<text x="346" y="${y + 4}" class="mono lbl">${name}</text>
-<rect x="410" y="${y - 5}" width="126" height="10" rx="5" fill="#0d1117"/>
-<rect x="410" y="${y - 5}" width="${(126 * p / 100).toFixed(1)}" height="10" rx="5" fill="${c}" class="fill fb" style="animation-delay:${(k * .15).toFixed(2)}s"/>
-<text x="590" y="${y + 4}" class="mono val" text-anchor="end">${p}%</text>`; }).join("");
+if (languages.length && shownPercent < 100) {
+  languages.push({
+    name: 'Other',
+    percent: 100 - shownPercent,
+    color: '#59647B',
+  });
+}
 
-const tiles = [
-  [622, 60, "#3ddc97", "Commits", n(cc.totalCommitContributions), `+${week7} this week`],
-  [759, 60, "#ffb454", "Streak", `${streak}d`, `best: ${best} days`],
-  [622, 196, "#58a6ff", "Pull requests", n(cc.totalPullRequestContributions), `${u.openPRs.totalCount} open`],
-  [759, 196, "#ff7b72", "Repositories", n(u.repositories.totalCount), `${n(stars)} stars`],
-].map(([x, y, c, l, v, d]) => `
-<rect x="${x}" y="${y}" width="121" height="120" rx="14" fill="#161b22" stroke="#30363d"/>
-<rect x="${x + 16}" y="${y + 18}" width="8" height="8" rx="2.5" fill="${c}"/>
-<text x="${x + 32}" y="${y + 26}" class="mono lbl">${l}</text>
-<text x="${x + 16}" y="${y + 70}" class="mono big">${v}</text>
-<text x="${x + 16}" y="${y + 98}" class="mono sub" fill="${c}">${d}</text>`).join("");
+if (!languages.length) {
+  languages = [{
+    name: 'No language data yet',
+    percent: 100,
+    color: '#59647B',
+  }];
+}
 
-let lx = 642, langSvg = "";
-for (const [, p, c] of langs) { const w = 216 * p / 100; langSvg += `<rect x="${lx.toFixed(1)}" y="372" width="${Math.max(w - 2, 2).toFixed(1)}" height="10" rx="3" fill="${c}"/>`; lx += w; }
-langs.forEach(([name, p, c], k) => { const x = k < 3 ? 642 : 760, y = 404 + (k % 3) * 18;
-  langSvg += `<circle cx="${x + 4}" cy="${y - 4}" r="4" fill="${c}"/><text x="${x + 14}" y="${y}" class="mono sub2">${name} ${p}%</text>`; });
+// Pet vitals are derived from actual GitHub activity.
+const stats = [
+  {
+    label: 'Mood',
+    value: sleepy ? 24 : clamp(45 + streak * 5),
+    color: '#41D9CF',
+    note: sleepy
+      ? 'waiting for a commit'
+      : streak >= 7
+        ? 'on a lovely streak'
+        : 'feeling good',
+  },
+  {
+    label: 'Snack meter',
+    value: clamp(Math.round((weekTotal / 18) * 100)),
+    color: '#FFB86B',
+    note: `${fmt(weekTotal)} commits this week`,
+  },
+  {
+    label: 'Energy',
+    value: Math.round((activeDays / 7) * 100),
+    color: '#8B7CFF',
+    note: `${activeDays} active days · last 7`,
+  },
+  {
+    label: 'Growth',
+    value: clamp(Math.round((xp / 2200) * 100)),
+    color: '#FF78A8',
+    note: `${fmt(xp)} contribution XP`,
+  },
+];
 
-const eyes = sleepy
-  ? `<path d="M146 152Q152 159 158 152M182 152Q188 159 194 152" fill="none" stroke="#3ddc97" stroke-width="3" stroke-linecap="round"/>`
-  : `<g class="blink fb"><ellipse cx="152" cy="152" rx="6" ry="8" fill="#3ddc97"/><ellipse cx="188" cy="152" rx="6" ry="8" fill="#3ddc97"/><circle cx="154" cy="149" r="2" fill="#e8fff5"/><circle cx="190" cy="149" r="2" fill="#e8fff5"/></g>`;
-const float1 = sleepy ? ["zzz", "#ffb454"] : ["+1 commit", "#3ddc97"];
-const float2 = sleepy ? ["feed me", "#ff7b72"] : [`+${Math.max(week7, 1)} this week`, "#ffb454"];
-const mood = sleepy ? "sleepy · feed me commits" : streak >= 7 ? `ecstatic · ${streak}d streak` : fedToday ? "happy · fed today" : "hungry · commit soon";
-const evo = level < 5 ? `next evolution: Bitbot at Lv ${5}` : "final form: Bitbot";
-const cx = 86 + (login.length + 2) * 7.2, cmd = cx + 14;
+const activityStatus = sleepy
+  ? 'Taking a tiny recharge break'
+  : streak >= 7
+    ? `${streak}-day streak. Byte is glowing.`
+    : latestDay.contributionCount > 0
+      ? 'A fresh commit made Byte smile'
+      : 'Ready when your next idea is';
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="482" viewBox="0 0 900 482" role="img" aria-label="${login}'s code pet dashboard">
-<defs>
-<linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6f7d4"/><stop offset=".5" stop-color="#3ddc97"/><stop offset="1" stop-color="#25a374"/></linearGradient>
-<linearGradient id="platTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#243642"/><stop offset="1" stop-color="#1a2630"/></linearGradient>
-<radialGradient id="glowG" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#3ddc97" stop-opacity=".22"/><stop offset="1" stop-color="#3ddc97" stop-opacity="0"/></radialGradient>
-<pattern id="grid" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0H0V16" fill="none" stroke="#ffffff" stroke-opacity=".04"/></pattern>
-<clipPath id="stageClip"><rect x="20" y="60" width="290" height="256" rx="14"/></clipPath>
-</defs>
-<style>
-.mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace}
-.ttl{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;font-weight:700;fill:#e6edf3}
-.lbl{font-size:11px;fill:#8b949e}.val{font-size:11px;fill:#e6edf3;font-weight:700}.big{font-size:30px;fill:#e6edf3;font-weight:700}.sub{font-size:11px}.sub2{font-size:11px;fill:#c9d1d9}
-.fb{transform-box:fill-box}
-.hop{animation:hop 2.4s cubic-bezier(.35,0,.3,1) infinite}
-.squash{transform-origin:50% 100%;animation:squash 2.4s ease-in-out infinite}
-.shadow{transform-origin:50% 50%;animation:shadow 2.4s ease-in-out infinite}
-.blink{transform-origin:50% 50%;animation:blink 4.5s infinite}
-.ant{transform-origin:50% 100%;animation:ant 2.4s ease-in-out infinite}
-.float{opacity:0;animation:float 5s ease-out infinite}.f2{animation-delay:2.5s}
-.fill{transform-origin:0 50%;animation:grow 1.3s cubic-bezier(.2,.8,.2,1) both}
-.cell{opacity:0;animation:pop .5s ease-out forwards}
-.cur{animation:cur 1s steps(1) infinite}.live{animation:live 2s ease-in-out infinite}
-@keyframes hop{0%,100%{transform:translateY(0)}38%,58%{transform:translateY(-30px)}85%{transform:translateY(0)}}
-@keyframes squash{0%,100%{transform:scale(1.05,.94)}25%{transform:scale(.97,1.04)}50%{transform:scale(.98,1.03)}85%{transform:scale(1.07,.92)}}
-@keyframes shadow{0%,100%{transform:scale(1);opacity:.5}48%{transform:scale(.7);opacity:.25}}
-@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
-@keyframes ant{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
-@keyframes float{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-46px);opacity:0}}
-@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@keyframes pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
-@keyframes cur{0%,50%{opacity:1}50.1%,100%{opacity:0}}
-@keyframes live{0%,100%{opacity:1}50%{opacity:.3}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}.cell,.float{opacity:1}}
-</style>
-<rect x=".5" y=".5" width="899" height="481" rx="18" fill="#0d1117" stroke="#30363d"/>
-<path d="M1 44H899" stroke="#30363d"/>
-<circle cx="24" cy="22" r="5" fill="#ff7b72"/><circle cx="43" cy="22" r="5" fill="#ffb454"/><circle cx="62" cy="22" r="5" fill="#3ddc97"/>
-<text x="86" y="26" class="mono" font-size="12" fill="#8b949e">~/${login.toLowerCase()}</text>
-<text x="${cmd.toFixed(0)}" y="26" class="mono" font-size="12" fill="#3ddc97">$ byte --status</text>
-<rect x="${(cmd + 15 * 7.2 + 4).toFixed(0)}" y="16" width="7" height="13" fill="#3ddc97" class="cur"/>
-<circle cx="862" cy="22" r="4" fill="#3ddc97" class="live"/>
-<text x="852" y="26" class="mono" font-size="11" fill="#8b949e" text-anchor="end">live data</text>
+const statusColor = sleepy ? '#FFB86B' : '#41D9CF';
+const moodLine = sleepy
+  ? 'Byte is in sleep mode'
+  : 'Byte is awake and growing';
 
-<rect x="20" y="60" width="290" height="256" rx="14" fill="#161b22" stroke="#30363d"/>
-<g clip-path="url(#stageClip)"><rect x="20" y="60" width="290" height="256" fill="url(#grid)"/><circle cx="165" cy="190" r="120" fill="url(#glowG)"/></g>
-<text x="40" y="88" class="ttl">Byte</text>
-<text x="40" y="106" class="mono lbl">${mood}</text>
-<rect x="254" y="74" width="40" height="20" rx="10" fill="none" stroke="#3ddc97"/>
-<text x="274" y="88" class="mono" font-size="11" fill="#3ddc97" text-anchor="middle">Lv ${level}</text>
-<path d="M55 252L165 296L275 252V264L165 308L55 264Z" fill="#10171d"/>
-<path d="M165 208L275 252L165 296L55 252Z" fill="url(#platTop)" stroke="#3ddc97" stroke-opacity=".5"/>
-<path d="M110 230L220 274M165 208L165 296M220 230L110 274" stroke="#3ddc97" stroke-opacity=".12"/>
-<ellipse cx="172" cy="248" rx="46" ry="10" fill="#000" class="shadow fb"/>
-<g class="hop"><g class="squash fb">
-<rect x="138" y="212" width="26" height="20" rx="8" fill="#1b7a58"/><rect x="178" y="212" width="26" height="20" rx="8" fill="#1b7a58"/>
-<rect x="106" y="146" width="14" height="28" rx="6" fill="#25a374"/><rect x="228" y="156" width="14" height="28" rx="6" fill="#1b7a58"/>
-<rect x="131" y="128" width="100" height="95" rx="30" fill="#1b7a58"/>
-<rect x="120" y="118" width="100" height="95" rx="30" fill="url(#bodyG)"/>
-<ellipse cx="141" cy="130" rx="17" ry="6" fill="#fff" opacity=".4" transform="rotate(-22 141 130)"/>
-<rect x="132" y="132" width="76" height="52" rx="17" fill="#09130f" stroke="#0f3a2b" stroke-width="2"/>
-${eyes}
-<ellipse cx="141" cy="167" rx="6" ry="3.5" fill="#ff7b72" opacity=".6"/><ellipse cx="199" cy="167" rx="6" ry="3.5" fill="#ff7b72" opacity=".6"/>
-<path d="M163 168Q170 ${sleepy ? 170 : 175} 177 168" fill="none" stroke="#3ddc97" stroke-width="2.5" stroke-linecap="round"/>
-<g class="ant fb"><path d="M170 118V98" stroke="#25a374" stroke-width="4" stroke-linecap="round"/><circle cx="170" cy="92" r="7" fill="#ffb454"/><circle cx="168" cy="90" r="2.2" fill="#fff" opacity=".7"/></g>
-</g></g>
-<text x="236" y="150" class="mono float fb" font-size="11" fill="${float1[1]}">${float1[0]}</text>
-<text x="46" y="176" class="mono float f2 fb" font-size="11" fill="${float2[1]}">${float2[0]}</text>
+// Draw the latest 40 contribution weeks.
+const weeks = calendar.weeks.slice(-40);
 
-<rect x="326" y="60" width="280" height="256" rx="14" fill="#161b22" stroke="#30363d"/>
-<text x="346" y="88" class="ttl">Status</text>
-<text x="590" y="88" class="mono lbl" text-anchor="end">fed by real commits</text>
-${bars}
-<path d="M346 244H590" stroke="#30363d"/>
-<text x="346" y="266" class="mono val">Level ${level}</text>
-<text x="590" y="266" class="mono lbl" text-anchor="end">${into} / 400 xp</text>
-<rect x="346" y="276" width="244" height="8" rx="4" fill="#0d1117"/>
-<rect x="346" y="276" width="${(244 * into / 400).toFixed(1)}" height="8" rx="4" fill="#3ddc97" class="fill fb" style="animation-delay:.6s"/>
-<text x="346" y="304" class="mono lbl">${evo}</text>
-${tiles}
+const heatColors = [
+  '#20283A',
+  '#263B58',
+  '#315B83',
+  '#367FA0',
+  '#41D9CF',
+];
 
-<rect x="20" y="332" width="586" height="130" rx="14" fill="#161b22" stroke="#30363d"/>
-<text x="40" y="356" class="ttl">Contributions · ${n(xp)} this year</text>
-<text x="586" y="356" class="mono lbl" text-anchor="end">last 40 weeks</text>
-${heat}
-<text x="586" y="396" class="mono lbl" text-anchor="end">best day</text>
-<text x="586" y="414" class="mono val" text-anchor="end">${topLabel} · ${top.contributionCount}</text>
-<text x="586" y="436" class="mono lbl" text-anchor="end">daily avg</text>
-<text x="586" y="454" class="mono val" text-anchor="end">${avg}</text>
+const maxContribution = Math.max(
+  1,
+  ...weeks.flatMap((week) =>
+    week.contributionDays.map((day) => day.contributionCount)
+  )
+);
 
-<rect x="622" y="332" width="258" height="130" rx="14" fill="#161b22" stroke="#30363d"/>
-<text x="642" y="356" class="ttl">Top languages</text>
-${langSvg}
-</svg>
-`;
-fs.writeFileSync("code-pet.svg", svg);
-console.log(`wrote code-pet.svg for ${login}: ${xp} contributions, ${streak}d streak`);
+const heatCells = weeks
+  .map((week, weekIndex) =>
+    week.contributionDays.map((day) => {
+      const ratio = day.contributionCount / maxContribution;
+
+      const levelIndex = day.contributionCount === 0
+        ? 0
+        : ratio < 0.25
+          ? 1
+          : ratio < 0.5
+            ? 2
+            : ratio < 0.75
+              ? 3
+              : 4;
+
+      const x = 52 + weekIndex * 12.1;
+      const y = 548 + day.weekday * 13.2;
+
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="8.8" height="9.4" rx="2.8" fill="${heatColors[levelIndex]}" class="heat-cell" style="animation-delay:${(weekIndex * 0.012 + day.weekday * 0.018).toFixed(3)}s"><title>${esc(day.date)}: ${day.contributionCount} contributions</title></rect>`;
+    }).join('')
+  )
+  .join('\n');
+
+// Pet vitals bars.
+const statBars = stats.map((stat, index) => {
+  const y = 165 + index * 39;
+
+  return `
+    <text x="705" y="${y}" class="micro-label">${esc(stat.label.toUpperCase())}</text>
+    <text x="944" y="${y}" class="micro-value" text-anchor="end">${stat.value}%</text>
+    <rect x="705" y="${y + 9}" width="239" height="7" rx="3.5" fill="#182236"/>
+    <rect x="705" y="${y + 9}" width="${(239 * stat.value / 100).toFixed(1)}" height="7" rx="3.5" fill="${stat.color}" class="progress-fill" style="animation-delay:${(index * 0.13).toFixed(2)}s"/>
+    <text x="705" y="${y + 29}" class="tiny-muted">${esc(stat.note)}</text>`;
+}).join('');
+
+// Main statistic tiles.
+const metricCards = [
+  {
+    x: 24,
+    accent: '#41D9CF',
+    icon: '↗',
+    label: 'COMMITS',
+    value: fmt(contributions.totalCommitContributions),
+    foot: `${fmt(weekTotal)} in the last 7 days`,
+  },
+  {
+    x: 267,
+    accent: '#8B7CFF',
+    icon: '⌘',
+    label: 'PULL REQUESTS',
+    value: fmt(contributions.totalPullRequestContributions),
+    foot: `${fmt(user.openPRs.totalCount)} currently open`,
+  },
+  {
+    x: 510,
+    accent: '#FFB86B',
+    icon: '✦',
+    label: 'CURRENT STREAK',
+    value: `${streak} days`,
+    foot: `Personal best: ${bestStreak} days`,
+  },
+  {
+    x: 753,
+    accent: '#FF78A8',
+    icon: '◈',
+    label: 'REPOSITORIES',
+    value: fmt(repoCount),
+    foot: `${fmt(stars)} public stars`,
+  },
+];
+
+const metricSvg = metricCards.map((card) => `
+  <g>
+    <rect x="${card.x}" y="370" width="223" height="96" rx="18" class="surface"/>
+    <rect x="${card.x + 17}" y="387" width="29" height="29" rx="9" fill="${card.accent}" fill-opacity=".13"/>
+    <text x="${card.x + 31.5}" y="407" text-anchor="middle" font-size="15" font-weight="700" fill="${card.accent}">${card.icon}</text>
+    <text x="${card.x + 56}" y="405" class="metric-label">${card.label}</text>
+    <text x="${card.x + 17}" y="443" class="metric-value">${card.value}</text>
+    <text x="${card.x + 206}" y="443" text-anchor="end" class="metric-foot">${esc(card.foot)}</text>
+  </g>`).join('');
+
+let languageBars = '';
+
+languages.forEach((language, index) => {
+  const column = index < 3 ? 0 : 1;
+  const row = index < 3 ? index : index - 3;
+  const x = column === 0 ? 714 : 836;
+  const y = 588 + row * 22;
+
+  languageBars += `
+    <circle cx="${x}" cy="${y - 3}" r="4" fill="${language.color}"/>
+    <text x="${x + 11}" y="${y}" class="language-name">${esc(language.name.length > 13 ? language.name.slice(0, 12) + '…' : language.name)}</text>
+    <text x="${column === 0 ? 818 : 944}" y="${y}" class="language-percent" text-anchor="end">${language.percent}%</text>`;
+});
+
+const contributionLabel = `${fmt(xp)} contributions · last 12 months`;
+
+const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="690" viewBox="0 0 1000 690" role="img" aria-labelledby="title desc">
+  <title id="title">Byte — ${esc(login)}'s GitHub coding companion</title>
+  <desc id="desc">A friendly animated robot with live GitHub contribution stats, streak, repository metrics, a 40-week contribution heatmap, and programming language breakdown.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10172A"/><stop offset=".52" stop-color="#0B1020"/><stop offset="1" stop-color="#111329"/></linearGradient>
+    <linearGradient id="heroGlow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#253B65" stop-opacity=".62"/><stop offset=".55" stop-color="#1D2849" stop-opacity=".34"/><stop offset="1" stop-color="#171E34" stop-opacity=".12"/></linearGradient>
+    <linearGradient id="botBody" x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#D8F9FF"/><stop offset=".32" stop-color="#7DE5E6"/><stop offset=".72" stop-color="#55BFD0"/><stop offset="1" stop-color="#4A7EBD"/></linearGradient>
+    <linearGradient id="botSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7E9BDF"/><stop offset="1" stop-color="#3A4B8A"/></linearGradient>
+    <linearGradient id="visor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17223E"/><stop offset="1" stop-color="#0B1429"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#41D9CF"/><stop offset="1" stop-color="#8B7CFF"/></linearGradient>
+    <radialGradient id="aura"><stop offset="0" stop-color="#41D9CF" stop-opacity=".24"/><stop offset=".65" stop-color="#8B7CFF" stop-opacity=".08"/><stop offset="1" stop-color="#8B7CFF" stop-opacity="0"/></radialGradient>
+    <pattern id="microGrid" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" fill="none" stroke="#A9B8E8" stroke-opacity=".055" stroke-width="1"/></pattern>
+    <clipPath id="heroClip"><rect x="24" y="84" width="952" height="270" rx="23"/></clipPath>
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="11"/></filter>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></filter>
+  </defs>
+  <style>
+    text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .surface{fill:#111A2D;stroke:#263450;stroke-width:1}
+    .eyebrow{font-size:10px;font-weight:800;letter-spacing:1.8px;fill:#7F91B5}
+    .heading{font-size:18px;font-weight:750;fill:#F2F5FF}
+    .muted{font-size:12px;fill:#91A0BF}
+    .tiny-muted{font-size:10px;fill:#7D8BA8}
+    .metric-label{font-size:10px;font-weight:800;letter-spacing:1.2px;fill:#8090AF}
+    .metric-value{font-size:25px;font-weight:800;letter-spacing:-.7px;fill:#F5F7FF}
+    .metric-foot{font-size:9px;fill:#8291AE}
+    .micro-label{font-size:9px;font-weight:800;letter-spacing:1.5px;fill:#8493B2}
+    .micro-value{font-size:10px;font-weight:750;fill:#DCE5FF}
+    .language-name{font-size:10px;font-weight:650;fill:#CBD5EE}
+    .language-percent{font-size:10px;font-weight:750;fill:#E8EEFF}
+    .bot-float{animation:float 3.8s ease-in-out infinite}
+    .bot-shadow{animation:shadow 3.8s ease-in-out infinite;transform-origin:50% 50%}
+    .bot-blink{transform-origin:center;animation:blink 5.2s infinite}
+    .orb{transform-origin:170px 222px;animation:orbit 14s linear infinite}
+    .progress-fill{transform-origin:left;animation:fill 1.3s cubic-bezier(.2,.8,.2,1) both}
+    .heat-cell{opacity:.96;animation:pop .35s ease-out both}
+    .twinkle{animation:twinkle 2.6s ease-in-out infinite}
+    .twinkle.delay{animation-delay:1.2s}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    @keyframes shadow{0%,100%{transform:scale(1);opacity:.38}50%{transform:scale(.8);opacity:.22}}
+    @keyframes blink{0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+    @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+    @keyframes pop{from{transform:scale(.65)}to{transform:scale(1)}}
+    @keyframes twinkle{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.18)}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important}.heat-cell{opacity:1}}
+  </style>
+
+  <!-- Canvas -->
+  <rect width="1000" height="690" rx="27" fill="url(#bg)"/>
+  <rect x="1" y="1" width="998" height="688" rx="26" fill="none" stroke="#2A3552" stroke-opacity=".8"/>
+  <circle cx="940" cy="70" r="180" fill="#594DAB" opacity=".08"/>
+  <circle cx="55" cy="660" r="170" fill="#20BDBB" opacity=".045"/>
+
+  <!-- Header -->
+  <g>
+    <rect x="25" y="22" width="31" height="31" rx="10" fill="url(#accent)"/>
+    <path d="M34 32L47 37.5L34 43V32Z" fill="#08162B"/>
+    <text x="68" y="36" font-size="13" font-weight="800" fill="#F3F6FF">BYTE</text>
+    <text x="68" y="49" class="mono" font-size="8" fill="#7485A8" letter-spacing="1">CODE COMPANION / 2.0</text>
+    <text x="976" y="39" text-anchor="end" font-size="10" font-weight="700" fill="#8392B1">${esc(login)}</text>
+    <rect x="838" y="48" width="138" height="21" rx="10.5" fill="#14263A" stroke="#275267"/>
+    <circle cx="851" cy="58.5" r="3" fill="${statusColor}"/>
+    <text x="861" y="62" font-size="8.5" font-weight="750" fill="#B5D9E4" letter-spacing=".7">LIVE GITHUB DATA</text>
+  </g>
+
+  <!-- Main hero -->
+  <g clip-path="url(#heroClip)">
+    <rect x="24" y="84" width="952" height="270" rx="23" fill="url(#heroGlow)" stroke="#2B3A5C"/>
+    <rect x="24" y="84" width="952" height="270" fill="url(#microGrid)"/>
+    <circle cx="171" cy="220" r="142" fill="url(#aura)"/>
+    <circle cx="171" cy="220" r="105" fill="none" stroke="#6C8BB9" stroke-opacity=".17" stroke-dasharray="2 8"/>
+    <ellipse cx="171" cy="303" rx="76" ry="12" fill="#030713" opacity=".75" filter="url(#softShadow)" class="bot-shadow"/>
+
+    <!-- orbiting satellites -->
+    <g class="orb">
+      <circle cx="171" cy="119" r="5" fill="#FFB86B" filter="url(#glow)"/>
+      <circle cx="171" cy="119" r="10" fill="none" stroke="#FFB86B" stroke-opacity=".3"/>
+    </g>
+    <circle cx="75" cy="184" r="3" fill="#41D9CF" class="twinkle"/>
+    <path d="M255 142l3 6 6 3-6 3-3 6-3-6-6-3 6-3z" fill="#8B7CFF" class="twinkle delay"/>
+    <path d="M82 270l2.5 5 5 2.5-5 2.5-2.5 5-2.5-5-5-2.5 5-2.5z" fill="#FFB86B" class="twinkle delay"/>
+
+    <!-- Byte mascot -->
+    <g class="bot-float">
+      <!-- antenna -->
+      <path d="M171 151V134" stroke="#72D8E3" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="171" cy="129" r="9" fill="#FFBE78" stroke="#FFE0B4" stroke-width="2"/>
+      <circle cx="168" cy="126" r="2.5" fill="#FFF7E8"/>
+
+      <!-- side fins -->
+      <path d="M105 204Q81 195 81 218Q83 239 106 232" fill="url(#botSide)" stroke="#9CEBF0" stroke-opacity=".5" stroke-width="2"/>
+      <path d="M237 204Q261 195 261 218Q259 239 236 232" fill="url(#botSide)" stroke="#9CEBF0" stroke-opacity=".5" stroke-width="2"/>
+      <circle cx="92" cy="216" r="4" fill="#FFCB8C"/>
+      <circle cx="250" cy="216" r="4" fill="#FFCB8C"/>
+
+      <!-- feet -->
+      <path d="M133 276Q130 295 145 297H160Q168 296 165 283Z" fill="#4666A5" stroke="#8BDCE6" stroke-width="2"/>
+      <path d="M179 283Q176 296 186 297H202Q217 295 209 276Z" fill="#4666A5" stroke="#8BDCE6" stroke-width="2"/>
+      <path d="M143 291h13M188 291h13" stroke="#B2F6F2" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+
+      <!-- body shell -->
+      <rect x="105" y="151" width="132" height="137" rx="39" fill="#263A68" opacity=".8" transform="translate(0 5)"/>
+      <rect x="101" y="146" width="140" height="137" rx="39" fill="url(#botBody)" stroke="#C6FBFF" stroke-width="2"/>
+      <path d="M119 163Q130 151 146 156" fill="none" stroke="#FFFFFF" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>
+      <path d="M222 169Q237 194 232 221" fill="none" stroke="#386E9D" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- face glass -->
+      <rect x="117" y="181" width="108" height="69" rx="23" fill="url(#visor)" stroke="#27466D" stroke-width="2"/>
+      <path d="M132 190Q171 177 207 190" fill="none" stroke="#8CC9E8" stroke-opacity=".28" stroke-width="2"/>
+
+      ${sleepy
+        ? '<path d="M142 214q8 8 16 0M184 214q8 8 16 0" fill="none" stroke="#68E9D9" stroke-width="4" stroke-linecap="round"/>'
+        : '<g class="bot-blink"><ellipse cx="150" cy="211" rx="7" ry="10" fill="#5DEBDD" filter="url(#glow)"/><ellipse cx="192" cy="211" rx="7" ry="10" fill="#5DEBDD" filter="url(#glow)"/><circle cx="152" cy="207" r="2.3" fill="#FFFFFF"/><circle cx="194" cy="207" r="2.3" fill="#FFFFFF"/></g>'}
+
+      <path d="M162 230Q171 237 180 230" fill="none" stroke="#8DEFE2" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- cheek lights -->
+      <circle cx="132" cy="231" r="4" fill="#F28FAE" opacity=".7"/>
+      <circle cx="210" cy="231" r="4" fill="#F28FAE" opacity=".7"/>
+
+      <!-- chest badge -->
+      <rect x="153" y="260" width="34" height="13" rx="6.5" fill="#294B78" opacity=".72"/>
+      <circle cx="163" cy="266.5" r="2" fill="#41D9CF"/>
+      <circle cx="171" cy="266.5" r="2" fill="#8B7CFF"/>
+      <circle cx="179" cy="266.5" r="2" fill="#FFB86B"/>
+    </g>
+
+    <!-- Hero copy -->
+    <text x="320" y="128" class="eyebrow">YOUR LITTLE COMMIT COMPANION</text>
+    <text x="318" y="181" font-size="47" font-weight="850" letter-spacing="-2" fill="#F4F6FF">Hey, I'm Byte<span fill="#41D9CF">.</span></text>
+    <text x="322" y="208" font-size="13" fill="#A6B4D1">I grow with every line of code you ship.</text>
+
+    <rect x="320" y="229" width="305" height="35" rx="12" fill="#111D31" stroke="#2B405D"/>
+    <circle cx="337" cy="246.5" r="4" fill="${statusColor}"/>
+    <text x="350" y="250" font-size="10.5" font-weight="650" fill="#D4E0F7">${esc(activityStatus)}</text>
+
+    <text x="322" y="294" class="eyebrow">LEVEL ${level}  /  ${fmt(xp)} TOTAL XP</text>
+    <rect x="322" y="305" width="302" height="7" rx="3.5" fill="#1D2A43"/>
+    <rect x="322" y="305" width="${(302 * xpIntoLevel / 400).toFixed(1)}" height="7" rx="3.5" fill="url(#accent)"/>
+    <text x="624" y="329" text-anchor="end" font-size="9" fill="#8192B4">${levelProgress}% to level ${level + 1}</text>
+
+    <!-- Vitals -->
+    <rect x="674" y="105" width="280" height="226" rx="19" fill="#0D1629" fill-opacity=".68" stroke="#2A3C5B"/>
+    <text x="699" y="132" class="eyebrow">BYTE'S VITALS</text>
+    <text x="929" y="132" text-anchor="end" font-size="9" fill="#7183A5">${esc(moodLine)}</text>
+    ${statBars}
+  </g>
+
+  <!-- Metric tiles -->
+  ${metricSvg}
+
+  <!-- Contribution heatmap -->
+  <g>
+    <rect x="24" y="485" width="650" height="180" rx="19" class="surface"/>
+    <text x="48" y="518" class="eyebrow">THE CONSISTENCY MAP</text>
+    <text x="48" y="539" class="heading">${contributionLabel}</text>
+    <text x="640" y="518" text-anchor="end" class="tiny-muted">LAST 40 WEEKS</text>
+    <text x="34" y="563" font-size="8" fill="#71809D">S</text>
+    <text x="34" y="589" font-size="8" fill="#71809D">T</text>
+    <text x="34" y="616" font-size="8" fill="#71809D">T</text>
+    ${heatCells}
+    <path d="M548 545V640" stroke="#273550"/>
+    <text x="568" y="565" class="eyebrow">BEST DAY</text>
+    <text x="568" y="585" font-size="17" font-weight="800" fill="#EDF3FF">${esc(shortDate(bestDay.date))}</text>
+    <text x="568" y="602" class="tiny-muted">${fmt(bestDay.contributionCount)} contributions</text>
+    <text x="568" y="626" class="eyebrow">DAILY AVG.</text>
+    <text x="568" y="645" font-size="15" font-weight="800" fill="#41D9CF">${dailyAverage}</text>
+  </g>
+
+  <!-- Languages -->
+  <g>
+    <rect x="690" y="485" width="286" height="180" rx="19" class="surface"/>
+    <text x="714" y="518" class="eyebrow">YOUR TOOLKIT</text>
+    <text x="714" y="539" class="heading">Top languages</text>
+    <rect x="710" y="554" width="234" height="7" rx="3.5" fill="#202B43"/>
+
+    ${(() => {
+      let x = 710;
+
+      return languages.map((language) => {
+        const width = 234 * language.percent / 100;
+
+        const part = `<rect x="${x.toFixed(1)}" y="554" width="${Math.max(0, width).toFixed(1)}" height="7" rx="3" fill="${language.color}"/>`;
+
+        x += width;
+        return part;
+      }).join('');
+    })()}
+
+    ${languageBars}
+  </g>
+
+  <text x="26" y="681" font-size="8" fill="#667594" letter-spacing=".5">BYTE 2.0  ·  AUTO-UPDATED FROM GITHUB  ·  KEEP BUILDING</text>
+  <text x="974" y="681" text-anchor="end" font-size="8" fill="#667594">${esc(today)} UTC</text>
+</svg>`;
+
+fs.writeFileSync('code-pet.svg', svg, 'utf8');
+
+console.log(
+  `Generated Byte 2.0 for ${login}: ${fmt(xp)} contributions, ${streak}-day streak, ${repoCount} repositories.`
+);
+
