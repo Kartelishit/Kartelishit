@@ -70,7 +70,7 @@
     <text x="68" y="49" class="mono" font-size="8" fill="#7485A8" letter-spacing="1">CODE COMPANION / 2.1</text>
     <text x="976" y="39" text-anchor="end" font-size="10" font-weight="700" fill="#8392B1">Kartelishit</text>
     <rect x="838" y="48" width="138" height="21" rx="10.5" fill="#14263A" stroke="#275267"/>
-    <circle cx="851" cy="58.5" r="3" fill="#41D9CF"/>
+    <circle cx="851" cy="58.5" r="3" fill="#FFB86B"/>
     <text x="861" y="62" font-size="8.5" font-weight="750" fill="#B5D9E4" letter-spacing=".7">LIVE GITHUB DATA</text>
   </g>
 
@@ -114,7 +114,7 @@
       <rect x="117" y="181" width="108" height="69" rx="23" fill="url(#visor)" stroke="#27466D" stroke-width="2"/>
       <path d="M132 190Q171 177 207 190" fill="none" stroke="#8CC9E8" stroke-opacity=".28" stroke-width="2"/>
 
-      <g class="bot-blink"><ellipse cx="150" cy="211" rx="7" ry="10" fill="#5DEBDD" filter="url(#glow)"/><ellipse cx="192" cy="211" rx="7" ry="10" fill="#5DEBDD" filter="url(#glow)"/><circle cx="152" cy="207" r="2.3" fill="#FFFFFF"/><circle cx="194" cy="207" r="2.3" fill="#FFFFFF"/></g>
+      <path d="M142 214q8 8 16 0M184 214q8 8 16 0" fill="none" stroke="#68E9D9" stroke-width="4" stroke-linecap="round"/>
 
       <path d="M162 230Q171 237 180 230" fill="none" stroke="#8DEFE2" stroke-width="3" stroke-linecap="round"/>
       <circle cx="132" cy="231" r="4" fill="#F28FAE" opacity=".7"/>
@@ -130,8 +130,8 @@
     <text x="318" y="181" font-size="47" font-weight="850" letter-spacing="-2" fill="#F4F6FF">Hey, I'm Byte<tspan fill="#41D9CF">.</tspan></text>
     <text x="322" y="208" font-size="13" fill="#A6B4D1">I grow with every line of code you ship.</text>
     <rect x="320" y="229" width="305" height="35" rx="12" fill="#111D31" stroke="#2B405D"/>
-    <circle cx="337" cy="246.5" r="4" fill="#41D9CF"/>
-    <text x="350" y="250" font-size="10.5" font-weight="650" fill="#D4E0F7">Ready when your next idea is</text>
+    <circle cx="337" cy="246.5" r="4" fill="#FFB86B"/>
+    <text x="350" y="250" font-size="10.5" font-weight="650" fill="#D4E0F7">Taking a tiny recharge break</text>
     <text x="322" y="294" class="eyebrow">LEVEL 1 / 32 TOTAL XP</text>
     <rect x="322" y="305" width="302" height="7" rx="3.5" fill="#1D2A43"/>
     <rect x="322" y="305" width="24.2" height="7" rx="3.5" fill="url(#accent)"/>
@@ -140,13 +140,13 @@
     <!-- Vitals -->
     <rect x="674" y="105" width="280" height="226" rx="19" fill="#0D1629" fill-opacity=".68" stroke="#2A3C5B"/>
     <text x="699" y="132" class="eyebrow">BYTE'S VITALS</text>
-    <text x="929" y="132" text-anchor="end" font-size="9" fill="#7183A5">Byte is awake and growing</text>
+    <text x="929" y="132" text-anchor="end" font-size="9" fill="#7183A5">Byte is in sleep mode</text>
     
     <text x="705" y="165" class="micro-label">MOOD</text>
-    <text x="944" y="165" class="micro-value" text-anchor="end">55%</text>
+    <text x="944" y="165" class="micro-value" text-anchor="end">24%</text>
     <rect x="705" y="174" width="239" height="7" rx="3.5" fill="#182236"/>
-    <rect x="705" y="174" width="131.4" height="7" rx="3.5" fill="#41D9CF" class="progress-fill" style="animation-delay:0.00s"/>
-    <text x="705" y="194" class="tiny-muted">feeling good</text>
+    <rect x="705" y="174" width="57.4" height="7" rx="3.5" fill="#41D9CF" class="progress-fill" style="animation-delay:0.00s"/>
+    <text x="705" y="194" class="tiny-muted">waiting for a commit</text>
     <text x="705" y="204" class="micro-label">SNACK METER</text>
     <text x="944" y="204" class="micro-value" text-anchor="end">83%</text>
     <rect x="705" y="213" width="239" height="7" rx="3.5" fill="#182236"/>
@@ -187,7 +187,7 @@
     <rect x="527" y="387" width="29" height="29" rx="9" fill="#FFB86B" fill-opacity=".13"/>
     <text x="541.5" y="407" text-anchor="middle" font-size="15" font-weight="700" fill="#FFB86B">✦</text>
     <text x="566" y="405" class="metric-label">CURRENT STREAK</text>
-    <text x="527" y="443" class="metric-value">2 days</text>
+    <text x="527" y="443" class="metric-value">0 days</text>
     <text x="716" y="443" text-anchor="end" class="metric-foot">Personal best: 2 days</text>
   </g>
   <g>
@@ -247,7 +247,7 @@
 <rect x="487.6" y="548.0" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.432s"><title>2026-10-18: 0 contributions</title></rect><rect x="487.6" y="561.2" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.450s"><title>2026-10-19: 0 contributions</title></rect><rect x="487.6" y="574.4" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.468s"><title>2026-10-20: 0 contributions</title></rect><rect x="487.6" y="587.6" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.486s"><title>2026-10-21: 0 contributions</title></rect><rect x="487.6" y="600.8" width="8.8" height="9.4" rx="2.8" fill="#263B58" class="heat-cell" style="animation-delay:0.504s"><title>2026-10-22: 3 contributions</title></rect><rect x="487.6" y="614.0" width="8.8" height="9.4" rx="2.8" fill="#263B58" class="heat-cell" style="animation-delay:0.522s"><title>2026-10-23: 2 contributions</title></rect><rect x="487.6" y="627.2" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.540s"><title>2026-10-24: 0 contributions</title></rect>
 <rect x="499.7" y="548.0" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.444s"><title>2026-10-25: 0 contributions</title></rect><rect x="499.7" y="561.2" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.462s"><title>2026-10-26: 0 contributions</title></rect><rect x="499.7" y="574.4" width="8.8" height="9.4" rx="2.8" fill="#263B58" class="heat-cell" style="animation-delay:0.480s"><title>2026-10-27: 1 contributions</title></rect><rect x="499.7" y="587.6" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.498s"><title>2026-10-28: 0 contributions</title></rect><rect x="499.7" y="600.8" width="8.8" height="9.4" rx="2.8" fill="#263B58" class="heat-cell" style="animation-delay:0.516s"><title>2026-10-29: 2 contributions</title></rect><rect x="499.7" y="614.0" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.534s"><title>2026-10-30: 0 contributions</title></rect><rect x="499.7" y="627.2" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.552s"><title>2026-10-31: 0 contributions</title></rect>
 <rect x="511.8" y="548.0" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.456s"><title>2026-11-01: 0 contributions</title></rect><rect x="511.8" y="561.2" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.474s"><title>2026-11-02: 0 contributions</title></rect><rect x="511.8" y="574.4" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.492s"><title>2026-11-03: 0 contributions</title></rect><rect x="511.8" y="587.6" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.510s"><title>2026-11-04: 0 contributions</title></rect><rect x="511.8" y="600.8" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.528s"><title>2026-11-05: 0 contributions</title></rect><rect x="511.8" y="614.0" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.546s"><title>2026-11-06: 0 contributions</title></rect><rect x="511.8" y="627.2" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.564s"><title>2026-11-07: 0 contributions</title></rect>
-<rect x="523.9" y="548.0" width="8.8" height="9.4" rx="2.8" fill="#263B58" class="heat-cell" style="animation-delay:0.468s"><title>2026-11-08: 2 contributions</title></rect><rect x="523.9" y="561.2" width="8.8" height="9.4" rx="2.8" fill="#41D9CF" class="heat-cell" style="animation-delay:0.486s"><title>2026-11-09: 13 contributions</title></rect><rect x="523.9" y="574.4" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.504s"><title>2026-11-10: 0 contributions</title></rect>
+<rect x="523.9" y="548.0" width="8.8" height="9.4" rx="2.8" fill="#263B58" class="heat-cell" style="animation-delay:0.468s"><title>2026-11-08: 2 contributions</title></rect><rect x="523.9" y="561.2" width="8.8" height="9.4" rx="2.8" fill="#41D9CF" class="heat-cell" style="animation-delay:0.486s"><title>2026-11-09: 13 contributions</title></rect><rect x="523.9" y="574.4" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.504s"><title>2026-11-10: 0 contributions</title></rect><rect x="523.9" y="587.6" width="8.8" height="9.4" rx="2.8" fill="#20283A" class="heat-cell" style="animation-delay:0.522s"><title>2026-11-11: 0 contributions</title></rect>
     <path d="M548 545V640" stroke="#273550"/>
     <text x="568" y="565" class="eyebrow">BEST DAY</text>
     <text x="568" y="585" font-size="17" font-weight="800" fill="#EDF3FF">Nov 9</text>
@@ -279,5 +279,5 @@
   </g>
 
   <text x="26" y="681" font-size="8" fill="#667594" letter-spacing=".5">BYTE 2.1 · AUTO-UPDATED FROM GITHUB · KEEP BUILDING</text>
-  <text x="974" y="681" text-anchor="end" font-size="8" fill="#667594">2026-11-10 UTC</text>
+  <text x="974" y="681" text-anchor="end" font-size="8" fill="#667594">2026-11-11 UTC</text>
 </svg>
